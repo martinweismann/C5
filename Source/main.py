@@ -68,8 +68,8 @@ def generatePotentialNexts(cube):
 	nextIndex = cube.nextOpenStone()
 	if (nextIndex == -1):
 		return []
-	print(str(nextIndex) + " = " + str(cube.nextOpenStone(False)) + " FF={:3d} =\n".format(
-		int(round(cube.fillingFactor()/(cube.n*cube.n*cube.n)))) + cube.hash() )
+	print(str(nextIndex) + " = " + str(cube.nextOpenStone(False)) + " FF={:3d}% =\n".format(
+		int(round(cube.fillingFactor()/(cube.n*cube.n*cube.n)*100)) ) + cube.hash() )
 
 	nexts = []
 	# generatePotentialNexts.iOrient = random.randint(0, len(orientations))
@@ -150,7 +150,7 @@ try:
 						firstOpenStone = [ aNew.fillingFactor(), aNew]
 					tryNext.add(aNew)
 
-		print("Generated {:3d} unique nexts (from {:d} nexts)".format(nUniques, len(nexts)))
+		print("Generated {:3d} unique, solvable nexts (from {:d} nexts)".format(nUniques, len(nexts)))
 		print("Highest First Open Stone = {:d}, {:s}, FF={:3d}%\n{:s}".format(
 			firstOpenStone[1].nextOpenStone(True), str(firstOpenStone[1].nextOpenStone(False)),round(firstOpenStone[1].fillingFactor()/125*100),firstOpenStone[1].hash()) )
 		nToTry.append(len(tryNext))
