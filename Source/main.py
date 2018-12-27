@@ -7,22 +7,26 @@ import random
 
 from sortedcontainers import SortedList
 
-def generateOrientations():
-	orientations = []
-	inorient = [ [[ 0,0,0], [ 1,0,0], [ 2,0,0], [ 3,0,0], [ 1,1,0]],
-					[[-1,0,0], [ 0,0,0], [ 1,0,0], [ 2,0,0], [ 0,1,0]],
-					[[-2,0,0], [-1,0,0], [ 0,0,0], [ 1,0,0], [-1,1,0]],
-					[[-3,0,0], [-2,0,0], [-1,0,0], [ 0,0,0], [-2,1,0]],
-					[[-1,-1,0],[0,-1,0], [1,-1,0], [2,-1,0], [0,0,0]] ]
 
-	# # n =4 working
-	# inorient = [ [[ 0,0,0], [ 1,0,0], [ 2,0,0], [ 1,1,0]],
-	# 				[[-1,0,0], [ 0,0,0], [ 1,0,0], [ 0,1,0]],
-	# 				[[-2,0,0], [-1,0,0], [ 0,0,0], [-1,1,0]],
-	# 				[[-3,0,0], [-2,0,0], [-1,0,0], [-2,1,0]],
-	# 				[[-1,-1,0],[0,-1,0], [1,-1,0], [0,0,0]] ]
-
-	# inorient = [ [[ 0,0,0], [ 1,0,0], [ 2,0,0], [ 3,0,0], [ 4,0,0]],
+def CreateStones(dimension):
+	stones = []
+	if (dimension == 5):
+		# working
+		inStones = [ [[ 0,0,0], [ 1,0,0], [ 2,0,0], [ 3,0,0], [ 1,1,0]],
+						[[-1,0,0], [ 0,0,0], [ 1,0,0], [ 2,0,0], [ 0,1,0]],
+						[[-2,0,0], [-1,0,0], [ 0,0,0], [ 1,0,0], [-1,1,0]],
+						[[-3,0,0], [-2,0,0], [-1,0,0], [ 0,0,0], [-2,1,0]],
+						[[-1,-1,0],[0,-1,0], [1,-1,0], [2,-1,0], [0,0,0]] ]
+	elif (dimension == 4):
+		# working
+		inStones = [ [[ 0,0,0], [ 1,0,0], [ 2,0,0], [ 1,1,0]],
+						[[-1,0,0], [ 0,0,0], [ 1,0,0], [ 0,1,0]],
+						[[-2,0,0], [-1,0,0], [ 0,0,0], [-1,1,0]],
+						[[-3,0,0], [-2,0,0], [-1,0,0], [-2,1,0]],
+						[[-1,-1,0],[0,-1,0], [1,-1,0], [0,0,0]] ]
+	else:
+		raise "Only n=4 or 5 supported!"
+	# instone = [ [[ 0,0,0], [ 1,0,0], [ 2,0,0], [ 3,0,0], [ 4,0,0]],
 	# 				 [[-1,0,0], [ 0,0,0], [ 1,0,0], [ 2,0,0], [ 3,0,0]],
 	# 				 [[-2,0,0], [-1,0,0], [ 0,0,0], [ 1,0,0], [ 2,0,0]],
 	# 				 [[-3,0,0], [-2,0,0], [-1,0,0], [ 0,0,0], [ 1,0,0]],
@@ -38,141 +42,162 @@ def generateOrientations():
 			for x in range(0, n):
 				phi_x = 90*x*math.pi/180
 				Rx = [ [1, 0, 0], [0, math.cos(phi_x), -math.sin(phi_x)], [0, math.sin(phi_x), math.cos(phi_x)] ]
-				for io in inorient:
-					newOrient = []
-					for indir in io:
-						ooNoRound = numpy.matmul(Rz, numpy.matmul(Ry, numpy.matmul(Rx, indir)))
-						newOrient.append( [int(round(r)) for r in ooNoRound] )
+				for inStone in inStones:
+					newStone = []
+					for inVoxel in inStone:
+						ooNoRound = numpy.matmul(Rz, numpy.matmul(Ry, numpy.matmul(Rx, inVoxel)))
+						newStone.append( [int(round(r)) for r in ooNoRound] )
 
-					# only append unique orientations
+					# only append unique stones
 					oosIsAlreadyIn = False
-					for oldOrient in orientations:
+					for oldStone in stones:
 						isSame = True
-						for k in range(0, len(oldOrient)):
-							for l in range(0, len(oldOrient[k])):
-								if not (oldOrient[k][l] == newOrient[k][l]):
+						for k in range(0, len(oldStone)):
+							for l in range(0, len(oldStone[k])):
+								if not (oldStone[k][l] == newStone[k][l]):
 									isSame = False
 						if (isSame):
 							oosIsAlreadyIn = True
 							break
 					if not oosIsAlreadyIn:
-						orientations.append(newOrient)
-	return orientations
+						stones.append(newStone)
+	return stones
 
-orientations = generateOrientations()
+class Statistics:
+	def __init__(self):
+		self.nTried = []
+		self.nSuccesses = []
+		self.nToTry = []
+		self.nNewlyGenerated = []
+		self.FillingFactor = []
 
-print("len(orientations)="+str(len(orientations)))
+class CubeSolver:
 
+	def generatePotentialNexts(self, cube):
+		nextVoxel = cube.nextOpenVoxel()
+		if (nextVoxel == -1):
+			return []
+		print(str(nextVoxel) + " = " + str(cube.nextOpenVoxel(False)) + " FF={:3d}% =\n".format(
+			cube.fillingFactor(True) )
+			 + cube.hash()
+			)
 
-def generatePotentialNexts(cube):
-	nextIndex = cube.nextOpenStone()
-	if (nextIndex == -1):
-		return []
-	print(str(nextIndex) + " = " + str(cube.nextOpenStone(False)) + " FF={:3d}% =\n".format(
-		int(round(cube.fillingFactor()/(cube.n*cube.n*cube.n)*100)) ) + cube.hash() )
+		nexts = []
+		# generatePotentialNexts.iStone = random.randint(0, len(stones))
+		self._iStoneCounter += 1
+		for iStone in range(0, len(self.stones)):
+			o = self.stones[(iStone + self._iStoneCounter)%len(self.stones)]
+			newCube = cube.insertStoneAt(nextVoxel, o)
+			if newCube:
+				nexts.append(newCube)
+		return nexts
 
-	nexts = []
-	# generatePotentialNexts.iOrient = random.randint(0, len(orientations))
-	generatePotentialNexts.iOrient = 0
-	for io in range(0, len(orientations)):
-		o = orientations[(io + generatePotentialNexts.iOrient)%len(orientations)]
-		newCube = cube.insertOrientationAt(nextIndex, o)
-		if newCube:
-			nexts.append(newCube)
-	return nexts
+	def __init__(self, dimension):
+		self.stones = CreateStones(dimension)
+		print("Creating solver with dimension = {:d} and {:d} stones".format(dimension, len(self.stones)) )
 
-print("Solving C5")
+		self.tryNext = SortedList(key = lambda x : x.fillingFactor())
+		self.failures = SortedList(key = lambda x : x.fillingFactor())
+		self.successes = []
 
-tryNext = SortedList(key = lambda x : x.fillingFactor())
-failures = SortedList(key = lambda x : x.fillingFactor())
-successes = []
+		firstCube = cube.Cube(n=dimension)
+		self.tryNext.add(firstCube)
+		
+		# statistics:
+		self.statistics = Statistics()
 
-firstCube = cube.Cube(n=5)
-tryNext.add(firstCube)
+		self.highestFillingFactor = [firstCube.fillingFactor(), firstCube]
+		self._iStoneCounter = 0
 
-nTried = 0
+	def UpdateHistory(self):
+		self.statistics.nToTry.append(len(self.tryNext))
+		self.statistics.nSuccesses.append(len(self.successes))
+		self.statistics.nTried.append(len(self.failures) + len(self.successes))
+		self.statistics.nNewlyGenerated.append(len(self.nextCubes))
 
-nTried = []
-nSuccesses = []
-nToTry = []
-nNewlyGenerated = []
-firstOpenStone = [firstCube.fillingFactor(), firstCube]
+	def ReportStatus(self):
+		print("Highest Filling Factor = FF={:3d}%, First Open Voxel: ({:d}, {:s}), Stones=\n{:s}".format(
+			self.highestFillingFactor[1].fillingFactor(True), self.highestFillingFactor[1].nextOpenVoxel(True),
+			str(self.highestFillingFactor[1].nextOpenVoxel(False)),self.highestFillingFactor[1].hash() )
+			)
+		print("Tried: {:8d} ({:8d} vs {:8d})".format( len(self.successes) + len(self.failures), len(self.failures), len(self.successes)) )
+		print("ToTry: {:8d} (current)".format(len(self.tryNext)))
 
-try:
-	while (len(tryNext) > 0):
-		print("Next iteration:")
-		curCube = tryNext.pop()
-
-		if curCube.isSolved():
-			successes.append(curCube)
-			print(curCube._grid)
-			curCube.plot()
-		else:
-			failures.add(curCube)
-
-		doPlot = False
-		if doPlot:
-			curCube.plot()
-		nexts = generatePotentialNexts(curCube)
-
+	def PickFromPotentialNexts(self):
 		nUniques = 0
-		for aNew in nexts:
-			if aNew.isSolved():
-				successes.append(aNew)
-				print("A solution to the cube is =\n{:s}".format(aNew.hash(True)))
-				if firstOpenStone[0] < aNew.fillingFactor():
-					firstOpenStone = [ aNew.fillingFactor(), aNew]
-				aNew.plot()
-				continue
-
+		for aNew in self.nextCubes:
 			bIsAlreadyIn = False
-			for old in failures.irange(aNew, aNew):
+			for old in self.failures.irange(aNew, aNew):
 				if old.samePattern(aNew):
 					bIsAlreadyIn = True
-					print("Already in!")
 					break
 			if not bIsAlreadyIn:
-				for old in tryNext.irange(aNew, aNew):
+				for old in self.tryNext.irange(aNew, aNew):
 					if old.samePattern(aNew):
 						bIsAlreadyIn = True
-						print("Already in!")
 						break
 			if not bIsAlreadyIn:
 				nUniques = nUniques + 1
-				if not aNew.CanBeSolved(orientations):
+				if not aNew.CanBeSolved(self.stones):
 					doMultiline = False
 					if (doMultiline):
 						aHash = aNew.hash(doMultiline)
-						print("The new generated cube can certainly not be solved =\n{:s}".format(aHash))
-					failures.add(aNew)
+						print("The new generated cube can certainly not be solved = {:s}".format(aHash))
+					self.failures.add(aNew)
 				else:
-					if firstOpenStone[0] < aNew.fillingFactor():
-						firstOpenStone = [ aNew.fillingFactor(), aNew]
-					tryNext.add(aNew)
+					if self.highestFillingFactor[0] < aNew.fillingFactor():
+						self.highestFillingFactor = [ aNew.fillingFactor(), aNew]
+					self.tryNext.add(aNew)
 
-		print("Generated {:3d} unique, solvable nexts (from {:d} nexts)".format(nUniques, len(nexts)))
-		print("Highest First Open Stone = {:d}, {:s}, FF={:3d}%\n{:s}".format(
-			firstOpenStone[1].nextOpenStone(True), str(firstOpenStone[1].nextOpenStone(False)),round(firstOpenStone[1].fillingFactor()/125*100),firstOpenStone[1].hash()) )
-		nToTry.append(len(tryNext))
-		nSuccesses.append(len(successes))
-		nTried.append(len(failures) + len(successes))
-		nNewlyGenerated.append(len(nexts))
-		print("Tried: {:8d} ({:8d} vs {:8d})".format( len(successes) + len(failures), len(failures), len(successes)) )
-		print("ToTry: {:8d}".format(len(tryNext)))
-		if len(successes) + len(failures) > 1e6:
-			break
+		print("Generated {:3d} unique, solvable nextCubes (from {:d} potential nextCubes)".format(nUniques, len(self.nextCubes)))
+
+	def solve(self):
+		while (len(self.tryNext) > 0):
+			print("\nNext iteration:")
+			curCube = self.tryNext.pop()
+
+			if curCube.isSolved():
+				self.successes.append(curCube)
+				print("The {:5d}. solution to the cube is =\n{:s}".format(len(self.successes), curCube.hash(True)))
+				if self.highestFillingFactor[0] < curCube.fillingFactor():
+			 		self.highestFillingFactor = [ curCube.fillingFactor(), curCube]
+			else:
+				self.failures.add(curCube)
+
+			doPlot = False
+			if doPlot:
+				curCube.plot()
+			
+			self.nextCubes = self.generatePotentialNexts(curCube)
+			self.PickFromPotentialNexts()
+
+			self.UpdateHistory()
+			self.nextCubes = []
+			self.statistics.FillingFactor.append(curCube.fillingFactor(True))
+
+			self.ReportStatus()
+			if self.statistics.nTried[-1] > 1e6:
+				print("Stopping \"solve()\" after {:d} iterations".format(self.statistics.nTried[-1]))
+				break
+
+	def epilog(self):
+		xAxis = range(0, len(self.statistics.nTried))
+		plt.plot(xAxis, self.statistics.nToTry, xAxis, self.statistics.nNewlyGenerated, xAxis, self.statistics.FillingFactor)
+		plt.xlabel('Iteration')
+		plt.ylabel('#')
+		plt.legend(['nTry', 'nNewlyGenerated', 'FillingFactor (%)'])
+		plt.show()
+
+		solver.ReportStatus()
+		self.highestFillingFactor[1].plot()
+
+
+solver = CubeSolver(5)
+try:
+	print("Solving C5")
+	solver.solve()
 except KeyboardInterrupt:
 	print("Interrupted")
 
 print("DONE")
-
-
-plt.plot(range(0, len(nTried)), nToTry, range(0, len(nTried)), nNewlyGenerated)
-plt.xlabel('Iteration')
-plt.ylabel('#ToTry')
-plt.show()
-
-print("Hieghest First Open Stone = {:d}, {:s} =\n{:s}".format(
-			firstOpenStone[0], str(firstOpenStone[1].nextOpenStone(False)),firstOpenStone[1].hash()) )
-print(firstOpenStone[1].hash())
-firstOpenStone[1].plot()
+solver.epilog()

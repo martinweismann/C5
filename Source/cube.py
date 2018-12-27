@@ -14,20 +14,20 @@ class Cube:
 		self.n = n
 		self._grid = [[[0 for x in range(self.n)] for y in range(self.n)] for z in range(self.n)]
 		self.highestItem = 0
-		self.firstOpenStone = 0
+		self.firstOpenVoxel = 0
 
 		if (otherCube):
 			for z in range(0,self.n):
 				for y in range(0,self.n):
 					for x in range(0,self.n):
 						self._grid[z][y][x] = otherCube._grid[z][y][x]
-			self.firstOpenStone = otherCube.firstOpenStone
+			self.firstOpenVoxel = otherCube.firstOpenVoxel
 			self.highestItem = otherCube.highestItem
 
 	def samePattern(self, otherCube):
 		if not (self.highestItem == otherCube.highestItem):
 			return False
-		if not (self.firstOpenStone == otherCube.firstOpenStone):
+		if not (self.firstOpenVoxel == otherCube.firstOpenVoxel):
 			return False
 		for z in range(0,self.n):
 				for y in range(0,self.n):
@@ -36,53 +36,44 @@ class Cube:
 							return False
 		return True
 	def isSolved(self):
-		return self.nextOpenStone() == -1
+		return self.nextOpenVoxel() == -1
 
-	def nextOpenStone(self, linear = True):
+	def nextOpenVoxel(self, linear = True):
 		if linear:
-			return self.firstOpenStone
+			return self.firstOpenVoxel
 		else:
-			index = [ self.firstOpenStone // (self.n*self.n)]
-			index.append(  (self.firstOpenStone - self.n*self.n*index[0])//self.n )
-			index.append(  (self.firstOpenStone - self.n*self.n*index[0] - self.n*index[1]) )
+			index = [ self.firstOpenVoxel // (self.n*self.n)]
+			index.append(  (self.firstOpenVoxel - self.n*self.n*index[0])//self.n )
+			index.append(  (self.firstOpenVoxel - self.n*self.n*index[0] - self.n*index[1]) )
 			return index
 
-		#for z in range(0,self.n):
-		#	for y in range(0,self.n):
-		#		for x in range(0,self.n):
-		#			if (self._grid[z][y][x] == 0):
-		#				return [z,y,x]
-		#return None
-
-
-	def calculateAbsoluteFittingCalculation(self, index, orientation):
-		newIndices = []
-		for orientPoint in orientation:
-			newIndex = [ orientPoint[k] + index[k] for k in range(0,3) ]
+	def calculateStoneAbsolute(self, index, stoneRelative):
+		stoneAbsolute = []
+		for stoneVoxelRelative in stoneRelative:
+			newIndex = [ stoneVoxelRelative[k] + index[k] for k in range(0,3) ]
 
 			lower = [i<self.n for i in newIndex]
 			higher = [i>=0 for i in newIndex]
 			if all(lower) and all(higher) and self._grid[ newIndex[0] ][ newIndex[1] ][ newIndex[2] ] == 0:
-				newIndices.append(newIndex)
+				stoneAbsolute.append(newIndex)
 			else:
 				return None
 
-		# print("len(newIndices) = {:d}".format(len(newIndices)))
-		if len(newIndices) != self.n:
-			raise("Error")
-		return newIndices
+		if len(stoneAbsolute) != self.n:
+			raise("Error: stone does not have the correct size!")
+		return stoneAbsolute
 
-	def fittingOrientations(self, index, orientations):
-		fittingAbsoluteOrientations = []
-		for orientation in orientations:
-			newIndices = self.calculateAbsoluteFittingCalculation(index, orientation)
-			if (newIndices == None):
+	def fittingStones(self, index, stones):
+		fittingStonesAbsolute = []
+		for stone in stones:
+			stoneAbsolute = self.calculateStoneAbsolute(index, stone)
+			if (stoneAbsolute == None):
 				continue
-			fittingAbsoluteOrientations.append(newIndices)
-		return fittingAbsoluteOrientations
+			fittingStonesAbsolute.append(stoneAbsolute)
+		return fittingStonesAbsolute
 
 	"""Returns, whether an overoptimistic heuristic declares this cube as solvable"""
-	def CanBeSolved(self, orientations):
+	def CanBeSolved(self, stones):
 		status = [[[SolvableStatus.UNUSED for x in range(self.n)] for y in range(self.n)] for z in range(self.n)]
 		for z in range(0,self.n):
 			for y in range(0,self.n):
@@ -94,7 +85,7 @@ class Cube:
 			for y in range(0,self.n):
 				for x in range(0,self.n):
 					if (status[z][y][x] == SolvableStatus.UNUSED):
-						fitting = self.fittingOrientations([z,y,x], orientations)
+						fitting = self.fittingStones([z,y,x], stones)
 						if (len(fitting) == 0):
 							return False
 						for fit in fitting:
@@ -122,15 +113,19 @@ class Cube:
 						ret = ret + chr(64+self._grid[z][y][x])
 			return ret
 
-	def fillingFactor(self):
+	def fillingFactor(self, normalized = False):
 		fac = 0
 		for z in range(0,self.n):
 			for y in range(0,self.n):
 				for x in range(0,self.n):
 					fac = fac + 1*(self._grid[z][y][x]>0)
-		return int(round(fac))
+		if normalized:
+			return int(round(fac/(self.n*self.n*self.n) * 100 ))
+		else:
+			return int(round(fac))
 
-	def insertOrientationAt(self, indexLinear, orientation):
+
+	def insertStoneAt(self, indexLinear, stoneRelative):
 		index = [ indexLinear // (self.n*self.n)]
 		index.append(  (indexLinear - self.n*self.n*index[0])//self.n )
 		index.append(  (indexLinear - self.n*self.n*index[0] - self.n*index[1]) )
@@ -138,7 +133,7 @@ class Cube:
 		if not (indexLinear == index[0]*self.n*self.n + index[1]*self.n + index[2]):
 			raise "indexLinear != index[0]*self.n*self.n + index[1]*self.n + index[2]"
 
-		newIndices = self.calculateAbsoluteFittingCalculation(index, orientation)
+		newIndices = self.calculateStoneAbsolute(index, stoneRelative)
 		if (newIndices == None):
 			return None
 		
@@ -148,12 +143,12 @@ class Cube:
 			# print(point)
 			cube._grid[ point[0] ][ point[1] ][ point[2] ] = cube.highestItem
 		
-		cube.firstOpenStone = -1
+		cube.firstOpenVoxel = -1
 		for z in range(0,cube.n):
 			for y in range(0,cube.n):
 				for x in range(0,cube.n):
 					if (cube._grid[z][y][x] == 0):
-						cube.firstOpenStone = z * cube.n*cube.n + y*cube.n + x
+						cube.firstOpenVoxel = z * cube.n*cube.n + y*cube.n + x
 						return cube
 		return cube
 
