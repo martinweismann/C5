@@ -1,11 +1,18 @@
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import enum
+
+class SolvableStatus(enum.Enum):
+	UNUSED = 0
+	USED = 1
+	SOLVABLE = 2
+
 
 class Cube:
 	def __init__(self, n = 5, otherCube = None):
 		self.n = n
-		self._grid =  [[[0 for x in range(self.n)] for y in range(self.n)] for z in range(self.n)]
+		self._grid = [[[0 for x in range(self.n)] for y in range(self.n)] for z in range(self.n)]
 		self.highestItem = 0
 		self.firstOpenStone = 0
 
@@ -48,14 +55,7 @@ class Cube:
 		#return None
 
 
-	def insertOrientationAt(self, indexLinear, orientation):
-		index = [ indexLinear // (self.n*self.n)]
-		index.append(  (indexLinear - self.n*self.n*index[0])//self.n )
-		index.append(  (indexLinear - self.n*self.n*index[0] - self.n*index[1]) )
-
-		if not (indexLinear == index[0]*self.n*self.n + index[1]*self.n + index[2]):
-			raise "indexLinear != index[0]*self.n*self.n + index[1]*self.n + index[2]"
-
+	def calculateAbsoluteFittingCalculation(self, index, orientation):
 		newIndices = []
 		for orientPoint in orientation:
 			newIndex = [ orientPoint[k] + index[k] for k in range(0,3) ]
@@ -70,6 +70,78 @@ class Cube:
 		# print("len(newIndices) = {:d}".format(len(newIndices)))
 		if len(newIndices) != self.n:
 			raise("Error")
+		return newIndices
+
+	def fittingOrientations(self, index, orientations):
+		fittingAbsoluteOrientations = []
+		for orientation in orientations:
+			newIndices = self.calculateAbsoluteFittingCalculation(index, orientation)
+			if (newIndices == None):
+				continue
+			fittingAbsoluteOrientations.append(newIndices)
+		return fittingAbsoluteOrientations
+
+	"""Returns, whether an overoptimistic heuristic declares this cube as solvable"""
+	def CanBeSolved(self, orientations):
+		status = [[[SolvableStatus.UNUSED for x in range(self.n)] for y in range(self.n)] for z in range(self.n)]
+		for z in range(0,self.n):
+			for y in range(0,self.n):
+				for x in range(0,self.n):
+					if (self._grid[z][y][x] > 0):
+						status[z][y][x] = SolvableStatus.SOLVABLE
+		
+		for z in range(0,self.n):
+			for y in range(0,self.n):
+				for x in range(0,self.n):
+					if (status[z][y][x] == SolvableStatus.UNUSED):
+						fitting = self.fittingOrientations([z,y,x], orientations)
+						if (len(fitting) == 0):
+							return False
+						for fit in fitting:
+							for fitCoordinate in fit:
+								if status[fitCoordinate[0]] [fitCoordinate[1]] [fitCoordinate[2]] == SolvableStatus.UNUSED:
+									status[fitCoordinate[0]] [fitCoordinate[1]] [fitCoordinate[2]] = SolvableStatus.USED
+		return True
+
+	def hash(self, multiLine = False):
+		
+		if (multiLine):
+			ret = ''
+			for z in range(0,self.n):
+				for y in range(0,self.n):
+					for x in range(0,self.n):
+						ret = ret + chr(64+self._grid[z][y][x])
+					ret = ret + '\n'
+				ret = ret + '\n'
+			return ret
+		else:
+			ret = ''
+			for z in range(0,self.n):
+				for y in range(0,self.n):
+					for x in range(0,self.n):
+						ret = ret + chr(64+self._grid[z][y][x])
+			return ret
+
+	def fillingFactor(self):
+		fac = 0
+		for z in range(0,self.n):
+			for y in range(0,self.n):
+				for x in range(0,self.n):
+					fac = fac + 1*(self._grid[z][y][x]>0)
+		return int(round(fac))
+
+	def insertOrientationAt(self, indexLinear, orientation):
+		index = [ indexLinear // (self.n*self.n)]
+		index.append(  (indexLinear - self.n*self.n*index[0])//self.n )
+		index.append(  (indexLinear - self.n*self.n*index[0] - self.n*index[1]) )
+
+		if not (indexLinear == index[0]*self.n*self.n + index[1]*self.n + index[2]):
+			raise "indexLinear != index[0]*self.n*self.n + index[1]*self.n + index[2]"
+
+		newIndices = self.calculateAbsoluteFittingCalculation(index, orientation)
+		if (newIndices == None):
+			return None
+		
 		cube = Cube(self.n, self)
 		cube.highestItem = self.highestItem + 1
 		for point in newIndices:

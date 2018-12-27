@@ -3,6 +3,7 @@ import cube
 import math
 import numpy
 import matplotlib.pyplot as plt
+import random
 
 from sortedcontainers import SortedList
 
@@ -62,24 +63,28 @@ orientations = generateOrientations()
 
 print("len(orientations)="+str(len(orientations)))
 
+
 def generatePotentialNexts(cube):
 	nextIndex = cube.nextOpenStone()
 	if (nextIndex == -1):
 		return []
-	print(str(nextIndex) + " = " + str(cube.nextOpenStone(False)) )
+	print(str(nextIndex) + " = " + str(cube.nextOpenStone(False)) + " FF={:3d} =\n".format(
+		int(round(cube.fillingFactor()/(cube.n*cube.n*cube.n)))) + cube.hash() )
 
 	nexts = []
-	for o in orientations:
+	# generatePotentialNexts.iOrient = random.randint(0, len(orientations))
+	generatePotentialNexts.iOrient = 0
+	for io in range(0, len(orientations)):
+		o = orientations[(io + generatePotentialNexts.iOrient)%len(orientations)]
 		newCube = cube.insertOrientationAt(nextIndex, o)
 		if newCube:
 			nexts.append(newCube)
 	return nexts
 
-
 print("Solving C5")
 
-tryNext = SortedList(key = lambda x : x.nextOpenStone())
-failures = SortedList(key = lambda x : x.nextOpenStone())
+tryNext = SortedList(key = lambda x : x.fillingFactor())
+failures = SortedList(key = lambda x : x.fillingFactor())
 successes = []
 
 firstCube = cube.Cube(n=5)
@@ -91,11 +96,13 @@ nTried = []
 nSuccesses = []
 nToTry = []
 nNewlyGenerated = []
-firstOpenStone = [firstCube.nextOpenStone(), firstCube]
+firstOpenStone = [firstCube.fillingFactor(), firstCube]
 
 try:
 	while (len(tryNext) > 0):
+		print("Next iteration:")
 		curCube = tryNext.pop()
+
 		if curCube.isSolved():
 			successes.append(curCube)
 			print(curCube._grid)
@@ -112,7 +119,9 @@ try:
 		for aNew in nexts:
 			if aNew.isSolved():
 				successes.append(aNew)
-				print(aNew._grid)
+				print("A solution to the cube is =\n{:s}".format(aNew.hash(True)))
+				if firstOpenStone[0] < aNew.fillingFactor():
+					firstOpenStone = [ aNew.fillingFactor(), aNew]
 				aNew.plot()
 				continue
 
@@ -129,12 +138,21 @@ try:
 						print("Already in!")
 						break
 			if not bIsAlreadyIn:
-				if firstOpenStone[0] < aNew.nextOpenStone():
-					firstOpenStone = [ aNew.nextOpenStone(), aNew]
-				tryNext.add(aNew)
 				nUniques = nUniques + 1
+				if not aNew.CanBeSolved(orientations):
+					doMultiline = False
+					if (doMultiline):
+						aHash = aNew.hash(doMultiline)
+						print("The new generated cube can certainly not be solved =\n{:s}".format(aHash))
+					failures.add(aNew)
+				else:
+					if firstOpenStone[0] < aNew.fillingFactor():
+						firstOpenStone = [ aNew.fillingFactor(), aNew]
+					tryNext.add(aNew)
+
 		print("Generated {:3d} unique nexts (from {:d} nexts)".format(nUniques, len(nexts)))
-		print("Hieghest First Open Stone = {:d}, {:s}".format(firstOpenStone[0], str(firstOpenStone[1].nextOpenStone(False)) ))
+		print("Highest First Open Stone = {:d}, {:s}, FF={:3d}%\n{:s}".format(
+			firstOpenStone[1].nextOpenStone(True), str(firstOpenStone[1].nextOpenStone(False)),round(firstOpenStone[1].fillingFactor()/125*100),firstOpenStone[1].hash()) )
 		nToTry.append(len(tryNext))
 		nSuccesses.append(len(successes))
 		nTried.append(len(failures) + len(successes))
@@ -148,9 +166,13 @@ except KeyboardInterrupt:
 
 print("DONE")
 
+
 plt.plot(range(0, len(nTried)), nToTry, range(0, len(nTried)), nNewlyGenerated)
 plt.xlabel('Iteration')
 plt.ylabel('#ToTry')
 plt.show()
 
+print("Hieghest First Open Stone = {:d}, {:s} =\n{:s}".format(
+			firstOpenStone[0], str(firstOpenStone[1].nextOpenStone(False)),firstOpenStone[1].hash()) )
+print(firstOpenStone[1].hash())
 firstOpenStone[1].plot()
