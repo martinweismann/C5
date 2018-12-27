@@ -59,7 +59,7 @@ class Cube:
 			else:
 				return None
 
-		if len(stoneAbsolute) != self.n:
+		if len(stoneAbsolute) != len(stoneRelative):
 			raise("Error: stone does not have the correct size!")
 		return stoneAbsolute
 

@@ -10,8 +10,16 @@ from sortedcontainers import SortedList
 
 def CreateStones(dimension):
 	stones = []
-	if (dimension == 5):
+	if (dimension == 6):
+		# working, but not solved
+		# https://www.knobelbox.com/geduldsspiele/wuerfelpuzzle/9/der-t-wuerfel?c=7
+		inStones = [ [[ 0,0,0], [ 1,0,0], [ 2,0,0], [ 1,1,0]],
+						[[-1,0,0], [ 0,0,0], [ 1,0,0], [ 0,1,0]],
+						[[-2,0,0], [-1,0,0], [ 0,0,0], [-1,1,0]],
+						[[-1,-1,0],[0,-1,0], [1,-1,0], [0,0,0]] ]
+	elif (dimension == 5):
 		# working
+		# https://www.connexxion24.com/downloads/anleitungen/Anleitung-DE-GB-FR-ES-125er-Wuerfel-25-Puzzlteteile-Denkspiel-Knobelspiel-Geduldspiel-2561-doc-1.pdf
 		inStones = [ [[ 0,0,0], [ 1,0,0], [ 2,0,0], [ 3,0,0], [ 1,1,0]],
 						[[-1,0,0], [ 0,0,0], [ 1,0,0], [ 2,0,0], [ 0,1,0]],
 						[[-2,0,0], [-1,0,0], [ 0,0,0], [ 1,0,0], [-1,1,0]],
@@ -26,11 +34,6 @@ def CreateStones(dimension):
 						[[-1,-1,0],[0,-1,0], [1,-1,0], [0,0,0]] ]
 	else:
 		raise "Only n=4 or 5 supported!"
-	# instone = [ [[ 0,0,0], [ 1,0,0], [ 2,0,0], [ 3,0,0], [ 4,0,0]],
-	# 				 [[-1,0,0], [ 0,0,0], [ 1,0,0], [ 2,0,0], [ 3,0,0]],
-	# 				 [[-2,0,0], [-1,0,0], [ 0,0,0], [ 1,0,0], [ 2,0,0]],
-	# 				 [[-3,0,0], [-2,0,0], [-1,0,0], [ 0,0,0], [ 1,0,0]],
-	# 				 [[-4,0,0], [-3,0,0], [-2,0,0], [-1,0,0], [ 0,0,0]] ]
 	
 	n = 4
 	for z in range(0, n):
@@ -145,8 +148,6 @@ class CubeSolver:
 						print("The new generated cube can certainly not be solved = {:s}".format(aHash))
 					self.failures.add(aNew)
 				else:
-					if self.highestFillingFactor[0] < aNew.fillingFactor():
-						self.highestFillingFactor = [ aNew.fillingFactor(), aNew]
 					self.tryNext.add(aNew)
 
 		print("Generated {:3d} unique, solvable nextCubes (from {:d} potential nextCubes)".format(nUniques, len(self.nextCubes)))
@@ -155,12 +156,11 @@ class CubeSolver:
 		while (len(self.tryNext) > 0):
 			print("\nNext iteration:")
 			curCube = self.tryNext.pop()
-
+			if self.highestFillingFactor[0] < curCube.fillingFactor():
+				self.highestFillingFactor = [ curCube.fillingFactor(), curCube]
 			if curCube.isSolved():
 				self.successes.append(curCube)
 				print("The {:5d}. solution to the cube is =\n{:s}".format(len(self.successes), curCube.hash(True)))
-				if self.highestFillingFactor[0] < curCube.fillingFactor():
-			 		self.highestFillingFactor = [ curCube.fillingFactor(), curCube]
 			else:
 				self.failures.add(curCube)
 
