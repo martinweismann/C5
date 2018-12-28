@@ -161,6 +161,7 @@ class CubeSolver:
 			if curCube.isSolved():
 				self.successes.append(curCube)
 				print("The {:5d}. solution to the cube is =\n{:s}".format(len(self.successes), curCube.hash(True)))
+				curCube.plotSteps()
 			else:
 				self.failures.add(curCube)
 
@@ -189,8 +190,7 @@ class CubeSolver:
 		plt.show()
 
 		solver.ReportStatus()
-		self.highestFillingFactor[1].plot()
-
+		self.highestFillingFactor[1].plotSteps()
 
 solver = CubeSolver(5)
 try:

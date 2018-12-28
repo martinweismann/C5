@@ -1,7 +1,10 @@
 
 import matplotlib.pyplot as plt
+from matplotlib import colors as matcolors
 from mpl_toolkits.mplot3d import Axes3D
 import enum
+import numpy as np
+import math
 
 class SolvableStatus(enum.Enum):
 	UNUSED = 0
@@ -12,15 +15,12 @@ class SolvableStatus(enum.Enum):
 class Cube:
 	def __init__(self, n = 5, otherCube = None):
 		self.n = n
-		self._grid = [[[0 for x in range(self.n)] for y in range(self.n)] for z in range(self.n)]
+		self._grid = np.zeros((self.n,self.n,self.n), dtype=int)
 		self.highestItem = 0
 		self.firstOpenVoxel = 0
 
 		if (otherCube):
-			for z in range(0,self.n):
-				for y in range(0,self.n):
-					for x in range(0,self.n):
-						self._grid[z][y][x] = otherCube._grid[z][y][x]
+			self._grid = otherCube._grid.copy()
 			self.firstOpenVoxel = otherCube.firstOpenVoxel
 			self.highestItem = otherCube.highestItem
 
@@ -29,12 +29,7 @@ class Cube:
 			return False
 		if not (self.firstOpenVoxel == otherCube.firstOpenVoxel):
 			return False
-		for z in range(0,self.n):
-				for y in range(0,self.n):
-					for x in range(0,self.n):
-						if not ( (self._grid[z][y][x] > 0) == (otherCube._grid[z][y][x] > 0) ):
-							return False
-		return True
+		return ((self._grid>0) == (otherCube._grid>0)).all()
 	def isSolved(self):
 		return self.nextOpenVoxel() == -1
 
@@ -74,12 +69,8 @@ class Cube:
 
 	"""Returns, whether an overoptimistic heuristic declares this cube as solvable"""
 	def CanBeSolved(self, stones):
-		status = [[[SolvableStatus.UNUSED for x in range(self.n)] for y in range(self.n)] for z in range(self.n)]
-		for z in range(0,self.n):
-			for y in range(0,self.n):
-				for x in range(0,self.n):
-					if (self._grid[z][y][x] > 0):
-						status[z][y][x] = SolvableStatus.SOLVABLE
+		status = np.full( (self.n, self.n, self.n), fill_value=SolvableStatus.UNUSED, dtype=SolvableStatus)
+		status[self._grid>0] = SolvableStatus.SOLVABLE
 		
 		for z in range(0,self.n):
 			for y in range(0,self.n):
@@ -114,13 +105,9 @@ class Cube:
 			return ret
 
 	def fillingFactor(self, normalized = False):
-		fac = 0
-		for z in range(0,self.n):
-			for y in range(0,self.n):
-				for x in range(0,self.n):
-					fac = fac + 1*(self._grid[z][y][x]>0)
+		fac = (self._grid>0).sum()
 		if normalized:
-			return int(round(fac/(self.n*self.n*self.n) * 100 ))
+			return int(round(fac/self._grid.size * 100 ))
 		else:
 			return int(round(fac))
 
@@ -140,7 +127,6 @@ class Cube:
 		cube = Cube(self.n, self)
 		cube.highestItem = self.highestItem + 1
 		for point in newIndices:
-			# print(point)
 			cube._grid[ point[0] ][ point[1] ][ point[2] ] = cube.highestItem
 		
 		cube.firstOpenVoxel = -1
@@ -151,6 +137,26 @@ class Cube:
 						cube.firstOpenVoxel = z * cube.n*cube.n + y*cube.n + x
 						return cube
 		return cube
+
+
+
+	def plotSteps(self):
+		colors = np.empty_like(self._grid, dtype=object)
+		
+		iMax = self.highestItem
+		dim = int(math.ceil(math.sqrt(iMax)))
+		dim = max([dim, 2])
+		_, axes = plt.subplots(dim, dim, subplot_kw=dict(projection='3d'), sharex=True, sharey=True)
+		
+		colorMap = list(matcolors.CSS4_COLORS.values())
+		for stoneIndex in range(1, self.highestItem+1):
+			colors[self._grid == stoneIndex] = colorMap[stoneIndex % len(colorMap)]
+			voxels = np.full_like(colors, fill_value=True, dtype=bool)
+			voxels[colors==None] = False
+			ax = axes[(stoneIndex-1)//dim, (stoneIndex-1)%dim]
+			ax.voxels(voxels, facecolors=colors, edgecolor='k')
+			ax.view_init(30, 30)
+		plt.show()
 
 	def plot(self):
 		fig = plt.figure()
