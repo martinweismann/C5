@@ -155,7 +155,11 @@ class Cube:
 			voxels[colors==None] = False
 			ax = axes[(stoneIndex-1)//dim, (stoneIndex-1)%dim]
 			ax.voxels(voxels, facecolors=colors, edgecolor='k')
+			ax.set_xticks([])
+			ax.set_yticks([])
+			ax.set_zticks([])
 			ax.view_init(30, 30)
+		plt.tight_layout()
 		plt.show()
 
 	def plot(self):
